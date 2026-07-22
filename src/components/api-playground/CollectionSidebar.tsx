@@ -27,6 +27,7 @@ import {
   FolderPlus,
   MoreHorizontal,
   Pencil,
+  Play,
   Plus,
   Trash2,
   FolderOpen,
@@ -46,6 +47,7 @@ type Props = {
   onDuplicateRequest: (collectionId: string, requestId: string) => void;
   onDeleteRequest: (collectionId: string, requestId: string) => void;
   onMoveRequest: (fromId: string, requestId: string, toId: string) => void;
+  onRunCollection: (collectionId: string) => void;
 };
 
 const METHOD_COLORS: Record<string, string> = {
