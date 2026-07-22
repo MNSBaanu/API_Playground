@@ -172,78 +172,113 @@ export function ResponseViewer({
   onSaveVariable,
   onSaveExtractor,
   canSaveExtractor,
+  history,
+  historySelectedIds,
+  onToggleHistorySelect,
+  onLoadHistoryEntry,
+  onClearHistory,
+  onCompareHistory,
 }: Props) {
-  if (error) {
-    return (
-      <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4">
-        <p className="text-sm font-medium text-destructive">Request failed</p>
-        <p className="mt-1 font-mono text-xs text-destructive/90">{error}</p>
-      </div>
-    );
-  }
-
-  if (!result) {
-    return (
-      <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-        {sending ? "Sending request..." : "Response will appear here."}
-      </div>
-    );
-  }
+  const hasResponse = !!result || !!error;
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <Badge variant="outline" className={`${statusVariant(result.status)} font-mono`}>
-          {result.status} {result.statusText}
-        </Badge>
-        <span className="text-muted-foreground">·</span>
-        <span className="text-muted-foreground">
-          <span className="font-medium text-foreground">{result.timeMs}</span> ms
-        </span>
-        <span className="text-muted-foreground">·</span>
-        <span className="text-muted-foreground">{formatSize(result.sizeBytes)}</span>
-      </div>
+      {error && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4">
+          <p className="text-sm font-medium text-destructive">Request failed</p>
+          <p className="mt-1 font-mono text-xs text-destructive/90">{error}</p>
+        </div>
+      )}
 
-      <Tabs defaultValue="body">
+      {!hasResponse && (
+        <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
+          {sending ? "Sending request..." : "Response will appear here."}
+        </div>
+      )}
+
+      {result && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <Badge
+            variant="outline"
+            className={`${statusVariant(result.status)} font-mono`}
+          >
+            {result.status} {result.statusText}
+          </Badge>
+          <span className="text-muted-foreground">·</span>
+          <span className="text-muted-foreground">
+            <span className="font-medium text-foreground">{result.timeMs}</span> ms
+          </span>
+          <span className="text-muted-foreground">·</span>
+          <span className="text-muted-foreground">{formatSize(result.sizeBytes)}</span>
+        </div>
+      )}
+
+      <Tabs defaultValue={result ? "body" : "history"}>
         <TabsList>
-          <TabsTrigger value="body">Body</TabsTrigger>
-          <TabsTrigger value="headers">
-            Headers ({Object.keys(result.headers).length})
+          <TabsTrigger value="body" disabled={!result}>
+            Body
           </TabsTrigger>
-          <TabsTrigger value="extract">Extract</TabsTrigger>
+          <TabsTrigger value="headers" disabled={!result}>
+            Headers{result ? ` (${Object.keys(result.headers).length})` : ""}
+          </TabsTrigger>
+          <TabsTrigger value="extract" disabled={!result}>
+            Extract
+          </TabsTrigger>
+          <TabsTrigger value="history">History ({history.length})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="body">
-          <ScrollArea className="h-[380px] rounded-md border bg-muted/30">
-            <pre className="p-4 font-mono text-xs leading-relaxed">
-              {result.body || <span className="text-muted-foreground">(empty)</span>}
-            </pre>
-          </ScrollArea>
-        </TabsContent>
+        {result && (
+          <>
+            <TabsContent value="body">
+              <ScrollArea className="h-[380px] rounded-md border bg-muted/30">
+                <pre className="p-4 font-mono text-xs leading-relaxed">
+                  {result.body || (
+                    <span className="text-muted-foreground">(empty)</span>
+                  )}
+                </pre>
+              </ScrollArea>
+            </TabsContent>
 
-        <TabsContent value="headers">
-          <ScrollArea className="h-[380px] rounded-md border">
-            <div className="divide-y">
-              {Object.entries(result.headers).map(([k, v]) => (
-                <div
-                  key={k}
-                  className="grid grid-cols-[minmax(140px,1fr)_2fr] gap-3 px-3 py-2 text-xs"
-                >
-                  <span className="font-mono font-medium">{k}</span>
-                  <span className="break-all font-mono text-muted-foreground">{v}</span>
+            <TabsContent value="headers">
+              <ScrollArea className="h-[380px] rounded-md border">
+                <div className="divide-y">
+                  {Object.entries(result.headers).map(([k, v]) => (
+                    <div
+                      key={k}
+                      className="grid grid-cols-[minmax(140px,1fr)_2fr] gap-3 px-3 py-2 text-xs"
+                    >
+                      <span className="font-mono font-medium">{k}</span>
+                      <span className="break-all font-mono text-muted-foreground">
+                        {v}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
-        </TabsContent>
+              </ScrollArea>
+            </TabsContent>
 
-        <TabsContent value="extract">
-          <div className="rounded-md border p-4">
-            <ExtractPanel
-              result={result}
-              onSaveVariable={onSaveVariable}
-              onSaveExtractor={onSaveExtractor}
-              canSaveExtractor={canSaveExtractor}
+            <TabsContent value="extract">
+              <div className="rounded-md border p-4">
+                <ExtractPanel
+                  result={result}
+                  onSaveVariable={onSaveVariable}
+                  onSaveExtractor={onSaveExtractor}
+                  canSaveExtractor={canSaveExtractor}
+                />
+              </div>
+            </TabsContent>
+          </>
+        )}
+
+        <TabsContent value="history">
+          <div className="rounded-md border">
+            <HistoryPanel
+              entries={history}
+              selectedIds={historySelectedIds}
+              onToggleSelect={onToggleHistorySelect}
+              onLoadEntry={onLoadHistoryEntry}
+              onClear={onClearHistory}
+              onCompare={onCompareHistory}
             />
           </div>
         </TabsContent>
