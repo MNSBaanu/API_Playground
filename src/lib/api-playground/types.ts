@@ -22,6 +22,14 @@ export type Collection = {
   requests: SavedRequest[];
 };
 
+export type EnvVariable = { id: string; key: string; value: string };
+
+export type Environment = {
+  id: string;
+  name: string;
+  variables: EnvVariable[];
+};
+
 export type ResponseResult = {
   status: number;
   statusText: string;
