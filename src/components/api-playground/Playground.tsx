@@ -5,18 +5,24 @@ import { CollectionSidebar } from "./CollectionSidebar";
 import { EnvironmentManager } from "./EnvironmentManager";
 import { VariablesPanel } from "./VariablesPanel";
 import { RunCollectionDialog } from "./RunCollectionDialog";
+import { CompareDialog } from "./CompareDialog";
 import {
+  appendHistory,
+  clearHistoryFor,
   loadActiveEnvId,
   loadCollections,
   loadEnvironments,
+  loadHistoryMap,
   saveActiveEnvId,
   saveCollections,
   saveEnvironments,
+  saveHistoryMap,
 } from "@/lib/api-playground/storage";
 import type {
   Collection,
   Environment,
   Extractor,
+  HistoryEntry,
   RequestState,
   ResponseResult,
   RunStep,
@@ -147,11 +153,36 @@ export function Playground() {
   const [runTotal, setRunTotal] = useState(0);
   const [running, setRunning] = useState(false);
 
+  const [historyMap, setHistoryMap] = useState<Record<string, HistoryEntry[]>>({});
+  const [historySelectedIds, setHistorySelectedIds] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
+
   useEffect(() => {
     setCollections(loadCollections());
     setEnvironments(loadEnvironments());
     setActiveEnvId(loadActiveEnvId());
+    setHistoryMap(loadHistoryMap());
   }, []);
+
+  const historyKey = activeRequestId ?? "__adhoc__";
+  const currentHistory = historyMap[historyKey] ?? [];
+
+  useEffect(() => {
+    setHistorySelectedIds([]);
+  }, [historyKey]);
+
+  const persistHistoryMap = (next: Record<string, HistoryEntry[]>) => {
+    setHistoryMap(next);
+    saveHistoryMap(next);
+  };
+
+  const recordHistory = (entry: HistoryEntry, key: string) => {
+    setHistoryMap((prev) => {
+      const next = appendHistory(prev, key, entry);
+      saveHistoryMap(next);
+      return next;
+    });
+  };
 
   const persistCollections = (next: Collection[]) => {
     setCollections(next);
@@ -188,15 +219,91 @@ export function Playground() {
     }
 
     setSending(true);
+    const key = historyKey;
     try {
       const { result: res } = await executeRequest(prepared);
       setResult(res);
+      recordHistory(
+        {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          timestamp: Date.now(),
+          method: request.method,
+          url: prepared.url,
+          status: res.status,
+          statusText: res.statusText,
+          timeMs: res.timeMs,
+          sizeBytes: res.sizeBytes,
+          headers: res.headers,
+          body: res.body,
+          isJson: res.isJson,
+        },
+        key,
+      );
     } catch (e) {
-      setError((e as Error).message || "Network error");
+      const msg = (e as Error).message || "Network error";
+      setError(msg);
+      recordHistory(
+        {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          timestamp: Date.now(),
+          method: request.method,
+          url: prepared.url,
+          status: null,
+          statusText: "",
+          timeMs: null,
+          sizeBytes: null,
+          headers: {},
+          body: "",
+          isJson: false,
+          error: msg,
+        },
+        key,
+      );
     } finally {
       setSending(false);
     }
   };
+
+  const toggleHistorySelect = (id: string) => {
+    setHistorySelectedIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 2) return prev;
+      return [...prev, id];
+    });
+  };
+
+  const loadHistoryEntry = (entry: HistoryEntry) => {
+    if (entry.status == null) {
+      setResult(null);
+      setError(entry.error ?? "Request failed");
+      return;
+    }
+    setError(null);
+    setResult({
+      status: entry.status,
+      statusText: entry.statusText,
+      headers: entry.headers,
+      body: entry.body,
+      isJson: entry.isJson,
+      timeMs: entry.timeMs ?? 0,
+      sizeBytes: entry.sizeBytes ?? 0,
+    });
+  };
+
+  const clearHistoryForCurrent = () => {
+    const next = clearHistoryFor(historyMap, historyKey);
+    persistHistoryMap(next);
+    setHistorySelectedIds([]);
+  };
+
+  const compareSelected = () => {
+    if (historySelectedIds.length === 2) setCompareOpen(true);
+  };
+
+  const compareLeft =
+    currentHistory.find((e) => e.id === historySelectedIds[0]) ?? null;
+  const compareRight =
+    currentHistory.find((e) => e.id === historySelectedIds[1]) ?? null;
 
   // Session variables
   const setSessionVar = (name: string, value: string) => {
@@ -344,6 +451,23 @@ export function Playground() {
         const { result: res, parsed, isJson } = await executeRequest(prepared);
         step = { ...step, status: res.status, timeMs: res.timeMs, ok: res.status < 400 };
 
+        recordHistory(
+          {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            timestamp: Date.now(),
+            method: saved.request.method,
+            url: prepared.url,
+            status: res.status,
+            statusText: res.statusText,
+            timeMs: res.timeMs,
+            sizeBytes: res.sizeBytes,
+            headers: res.headers,
+            body: res.body,
+            isJson: res.isJson,
+          },
+          saved.id,
+        );
+
         for (const ex of saved.extractors ?? []) {
           if (!isJson || parsed == null) {
             extracted.push({ name: ex.name, value: null });
@@ -359,7 +483,25 @@ export function Playground() {
           }
         }
       } catch (e) {
-        step = { ...step, error: (e as Error).message || "Network error" };
+        const msg = (e as Error).message || "Network error";
+        step = { ...step, error: msg };
+        recordHistory(
+          {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            timestamp: Date.now(),
+            method: saved.request.method,
+            url: prepared.url,
+            status: null,
+            statusText: "",
+            timeMs: null,
+            sizeBytes: null,
+            headers: {},
+            body: "",
+            isJson: false,
+            error: msg,
+          },
+          saved.id,
+        );
       }
 
       setRunSteps((s) => [...s, step]);
@@ -452,6 +594,12 @@ export function Playground() {
                 onSaveVariable={setSessionVar}
                 onSaveExtractor={activeRequestId ? handleSaveExtractor : undefined}
                 canSaveExtractor={!!activeRequestId}
+                history={currentHistory}
+                historySelectedIds={historySelectedIds}
+                onToggleHistorySelect={toggleHistorySelect}
+                onLoadHistoryEntry={loadHistoryEntry}
+                onClearHistory={clearHistoryForCurrent}
+                onCompareHistory={compareSelected}
               />
             </div>
           </div>
@@ -487,6 +635,13 @@ export function Playground() {
         steps={runSteps}
         currentIndex={runIndex}
         total={runTotal}
+      />
+
+      <CompareDialog
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        left={compareLeft}
+        right={compareRight}
       />
     </div>
   );

@@ -1,9 +1,11 @@
-import type { Collection, Environment, SavedRequest } from "./types";
+import type { Collection, Environment, HistoryEntry, SavedRequest } from "./types";
 
 const COLLECTIONS_KEY = "api-playground:collections:v2";
 const LEGACY_COLLECTION_KEY = "api-playground:collection:v1";
 const ENVIRONMENTS_KEY = "api-playground:environments:v1";
 const ACTIVE_ENV_KEY = "api-playground:active-env:v1";
+const HISTORY_KEY = "api-playground:history:v1";
+const HISTORY_LIMIT = 50;
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -67,4 +69,41 @@ export function saveActiveEnvId(id: string | null): void {
   if (typeof window === "undefined") return;
   if (id) window.localStorage.setItem(ACTIVE_ENV_KEY, id);
   else window.localStorage.removeItem(ACTIVE_ENV_KEY);
+}
+
+type HistoryMap = Record<string, HistoryEntry[]>;
+
+export function loadHistoryMap(): HistoryMap {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(HISTORY_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") return parsed as HistoryMap;
+    }
+  } catch {
+    /* ignore */
+  }
+  return {};
+}
+
+export function saveHistoryMap(map: HistoryMap): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(HISTORY_KEY, JSON.stringify(map));
+}
+
+export function appendHistory(
+  map: HistoryMap,
+  key: string,
+  entry: HistoryEntry,
+): HistoryMap {
+  const list = map[key] ? [entry, ...map[key]] : [entry];
+  const trimmed = list.slice(0, HISTORY_LIMIT);
+  return { ...map, [key]: trimmed };
+}
+
+export function clearHistoryFor(map: HistoryMap, key: string): HistoryMap {
+  const next = { ...map };
+  delete next[key];
+  return next;
 }
