@@ -6,20 +6,46 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { BookmarkPlus, Trash2 } from "lucide-react";
-import type { SavedRequest } from "@/lib/api-playground/types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  FolderPlus,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+  FolderOpen,
+} from "lucide-react";
+import type { Collection, RequestState, SavedRequest } from "@/lib/api-playground/types";
 
 type Props = {
-  items: SavedRequest[];
+  collections: Collection[];
+  activeRequestId: string | null;
+  currentRequest: RequestState;
   onLoad: (item: SavedRequest) => void;
-  onDelete: (id: string) => void;
-  onSave: (name: string) => void;
-  canSave: boolean;
+  onCreateCollection: (name: string) => void;
+  onRenameCollection: (id: string, name: string) => void;
+  onDeleteCollection: (id: string) => void;
+  onSaveCurrentTo: (collectionId: string, name: string) => void;
+  onRenameRequest: (collectionId: string, requestId: string, name: string) => void;
+  onDuplicateRequest: (collectionId: string, requestId: string) => void;
+  onDeleteRequest: (collectionId: string, requestId: string) => void;
+  onMoveRequest: (fromId: string, requestId: string, toId: string) => void;
 };
 
 const METHOD_COLORS: Record<string, string> = {
@@ -30,97 +56,371 @@ const METHOD_COLORS: Record<string, string> = {
   DELETE: "text-destructive",
 };
 
-export function CollectionSidebar({ items, onLoad, onDelete, onSave, canSave }: Props) {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
+type PromptState =
+  | { kind: "new-collection" }
+  | { kind: "rename-collection"; id: string; current: string }
+  | { kind: "rename-request"; collectionId: string; requestId: string; current: string }
+  | { kind: "save-current"; collectionId: string }
+  | null;
+
+export function CollectionSidebar(props: Props) {
+  const {
+    collections,
+    activeRequestId,
+    onLoad,
+    onCreateCollection,
+    onRenameCollection,
+    onDeleteCollection,
+    onSaveCurrentTo,
+    onRenameRequest,
+    onDuplicateRequest,
+    onDeleteRequest,
+    onMoveRequest,
+    currentRequest,
+  } = props;
+
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [prompt, setPrompt] = useState<PromptState>(null);
+  const [promptValue, setPromptValue] = useState("");
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+
+  const isExpanded = (id: string) => expanded[id] !== false; // default open
+
+  const toggle = (id: string) =>
+    setExpanded((s) => ({ ...s, [id]: !isExpanded(id) }));
+
+  const openPrompt = (p: Exclude<PromptState, null>, initial = "") => {
+    setPrompt(p);
+    setPromptValue(initial);
+  };
+
+  const submitPrompt = () => {
+    const v = promptValue.trim();
+    if (!v || !prompt) return;
+    if (prompt.kind === "new-collection") onCreateCollection(v);
+    else if (prompt.kind === "rename-collection") onRenameCollection(prompt.id, v);
+    else if (prompt.kind === "rename-request")
+      onRenameRequest(prompt.collectionId, prompt.requestId, v);
+    else if (prompt.kind === "save-current") onSaveCurrentTo(prompt.collectionId, v);
+    setPrompt(null);
+    setPromptValue("");
+  };
+
+  const promptTitle =
+    prompt?.kind === "new-collection"
+      ? "New collection"
+      : prompt?.kind === "rename-collection"
+      ? "Rename collection"
+      : prompt?.kind === "rename-request"
+      ? "Rename request"
+      : prompt?.kind === "save-current"
+      ? "Save request"
+      : "";
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-muted/20">
-      <div className="border-b p-3">
-        <h2 className="text-sm font-semibold">Collection</h2>
-        <p className="mt-0.5 text-xs text-muted-foreground">Saved requests</p>
+    <aside className="flex h-full w-72 shrink-0 flex-col border-r bg-muted/20">
+      <div className="flex items-center justify-between border-b p-3">
+        <div>
+          <h2 className="text-sm font-semibold">Collections</h2>
+          <p className="text-xs text-muted-foreground">Organize saved requests</p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => openPrompt({ kind: "new-collection" })}
+          aria-label="New collection"
+          title="New collection"
+        >
+          <FolderPlus className="h-4 w-4" />
+        </Button>
       </div>
 
       <ScrollArea className="flex-1">
-        {items.length === 0 ? (
-          <p className="p-4 text-xs text-muted-foreground">
-            No saved requests yet. Configure a request and click Save.
-          </p>
+        {collections.length === 0 ? (
+          <div className="p-4">
+            <p className="text-xs text-muted-foreground">No collections yet.</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 w-full"
+              onClick={() => openPrompt({ kind: "new-collection" })}
+            >
+              <FolderPlus className="mr-2 h-4 w-4" />
+              Create collection
+            </Button>
+          </div>
         ) : (
-          <ul className="p-2">
-            {items.map((item) => (
-              <li
-                key={item.id}
-                className="group flex items-center gap-1 rounded-md px-2 py-1.5 hover:bg-accent"
-              >
-                <button
-                  onClick={() => onLoad(item)}
-                  className="flex flex-1 items-center gap-2 overflow-hidden text-left"
-                >
-                  <span
-                    className={`font-mono text-[10px] font-bold ${
-                      METHOD_COLORS[item.request.method] ?? ""
+          <ul className="p-1.5">
+            {collections.map((col) => {
+              const open = isExpanded(col.id);
+              const isDragOver = dragOverId === col.id;
+              return (
+                <li key={col.id} className="mb-0.5">
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      setDragOverId(col.id);
+                    }}
+                    onDragLeave={() => setDragOverId((d) => (d === col.id ? null : d))}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragOverId(null);
+                      const data = e.dataTransfer.getData("application/x-req");
+                      if (!data) return;
+                      const [fromId, reqId] = data.split("::");
+                      if (fromId && reqId && fromId !== col.id) {
+                        onMoveRequest(fromId, reqId, col.id);
+                      }
+                    }}
+                    className={`group flex items-center gap-1 rounded-md px-1.5 py-1 ${
+                      isDragOver ? "bg-primary/10 ring-1 ring-primary/40" : "hover:bg-accent"
                     }`}
                   >
-                    {item.request.method}
-                  </span>
-                  <span className="truncate text-sm">{item.name}</span>
-                </button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                  onClick={() => onDelete(item.id)}
-                  aria-label={`Delete ${item.name}`}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </li>
-            ))}
+                    <button
+                      onClick={() => toggle(col.id)}
+                      className="flex flex-1 items-center gap-1.5 overflow-hidden text-left"
+                    >
+                      {open ? (
+                        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
+                      <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="truncate text-sm font-medium">{col.name}</span>
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        {col.requests.length}
+                      </span>
+                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                          aria-label="Collection menu"
+                        >
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() =>
+                            openPrompt(
+                              { kind: "save-current", collectionId: col.id },
+                              currentRequest.url ? "New request" : "",
+                            )
+                          }
+                          disabled={!currentRequest.url}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Save current request here
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            openPrompt(
+                              { kind: "rename-collection", id: col.id, current: col.name },
+                              col.name,
+                            )
+                          }
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => onDeleteCollection(col.id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete collection
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {open && (
+                    <ul className="ml-4 border-l pl-1">
+                      {col.requests.length === 0 ? (
+                        <li className="px-2 py-1 text-xs text-muted-foreground">
+                          Drop or save a request here
+                        </li>
+                      ) : (
+                        col.requests.map((req) => {
+                          const active = req.id === activeRequestId;
+                          return (
+                            <li
+                              key={req.id}
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData(
+                                  "application/x-req",
+                                  `${col.id}::${req.id}`,
+                                );
+                                e.dataTransfer.effectAllowed = "move";
+                              }}
+                              className={`group flex items-center gap-1 rounded-md px-1.5 py-1 ${
+                                active ? "bg-accent" : "hover:bg-accent/60"
+                              }`}
+                            >
+                              <button
+                                onClick={() => onLoad(req)}
+                                className="flex flex-1 items-center gap-2 overflow-hidden text-left"
+                              >
+                                <span
+                                  className={`w-10 shrink-0 font-mono text-[10px] font-bold ${
+                                    METHOD_COLORS[req.request.method] ?? ""
+                                  }`}
+                                >
+                                  {req.request.method}
+                                </span>
+                                <span className="truncate text-sm">{req.name}</span>
+                              </button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                                    aria-label="Request menu"
+                                  >
+                                    <MoreHorizontal className="h-3.5 w-3.5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      openPrompt(
+                                        {
+                                          kind: "rename-request",
+                                          collectionId: col.id,
+                                          requestId: req.id,
+                                          current: req.name,
+                                        },
+                                        req.name,
+                                      )
+                                    }
+                                  >
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Rename
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => onDuplicateRequest(col.id, req.id)}
+                                  >
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    Duplicate
+                                  </DropdownMenuItem>
+                                  {collections.length > 1 && (
+                                    <DropdownMenuSub>
+                                      <DropdownMenuSubTrigger>
+                                        <FolderOpen className="mr-2 h-4 w-4" />
+                                        Move to
+                                      </DropdownMenuSubTrigger>
+                                      <DropdownMenuSubContent>
+                                        {collections
+                                          .filter((c) => c.id !== col.id)
+                                          .map((c) => (
+                                            <DropdownMenuItem
+                                              key={c.id}
+                                              onClick={() =>
+                                                onMoveRequest(col.id, req.id, c.id)
+                                              }
+                                            >
+                                              {c.name}
+                                            </DropdownMenuItem>
+                                          ))}
+                                      </DropdownMenuSubContent>
+                                    </DropdownMenuSub>
+                                  )}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => onDeleteRequest(col.id, req.id)}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </li>
+                          );
+                        })
+                      )}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </ScrollArea>
 
       <div className="border-t p-3">
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="w-full" disabled={!canSave}>
-              <BookmarkPlus className="mr-2 h-4 w-4" />
-              Save current
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" className="w-full" disabled={!currentRequest.url}>
+              <Plus className="mr-2 h-4 w-4" />
+              Save current request
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Save request</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-2">
-              <Label htmlFor="req-name">Name</Label>
-              <Input
-                id="req-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="List users"
-                autoFocus
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  if (!name.trim()) return;
-                  onSave(name.trim());
-                  setName("");
-                  setOpen(false);
-                }}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            {collections.length === 0 ? (
+              <DropdownMenuItem
+                onClick={() => openPrompt({ kind: "new-collection" })}
               >
-                Save
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+                <FolderPlus className="mr-2 h-4 w-4" />
+                Create a collection first
+              </DropdownMenuItem>
+            ) : (
+              <>
+                {collections.map((c) => (
+                  <DropdownMenuItem
+                    key={c.id}
+                    onClick={() =>
+                      openPrompt({ kind: "save-current", collectionId: c.id }, "New request")
+                    }
+                  >
+                    <FolderOpen className="mr-2 h-4 w-4" />
+                    {c.name}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => openPrompt({ kind: "new-collection" })}>
+                  <FolderPlus className="mr-2 h-4 w-4" />
+                  New collection…
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
+      <Dialog open={prompt !== null} onOpenChange={(o) => !o && setPrompt(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{promptTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="prompt-input">Name</Label>
+            <Input
+              id="prompt-input"
+              value={promptValue}
+              onChange={(e) => setPromptValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submitPrompt();
+              }}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPrompt(null)}>
+              Cancel
+            </Button>
+            <Button onClick={submitPrompt}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }
