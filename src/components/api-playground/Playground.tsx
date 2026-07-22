@@ -601,6 +601,13 @@ export function Playground() {
         currentIndex={runIndex}
         total={runTotal}
       />
+
+      <CompareDialog
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        left={compareLeft}
+        right={compareRight}
+      />
     </div>
   );
 }
