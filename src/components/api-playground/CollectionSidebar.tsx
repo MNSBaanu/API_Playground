@@ -27,6 +27,7 @@ import {
   FolderPlus,
   MoreHorizontal,
   Pencil,
+  Play,
   Plus,
   Trash2,
   FolderOpen,
@@ -46,6 +47,7 @@ type Props = {
   onDuplicateRequest: (collectionId: string, requestId: string) => void;
   onDeleteRequest: (collectionId: string, requestId: string) => void;
   onMoveRequest: (fromId: string, requestId: string, toId: string) => void;
+  onRunCollection: (collectionId: string) => void;
 };
 
 const METHOD_COLORS: Record<string, string> = {
@@ -76,6 +78,7 @@ export function CollectionSidebar(props: Props) {
     onDuplicateRequest,
     onDeleteRequest,
     onMoveRequest,
+    onRunCollection,
     currentRequest,
   } = props;
 
@@ -193,6 +196,20 @@ export function CollectionSidebar(props: Props) {
                         {col.requests.length}
                       </span>
                     </button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                      aria-label={`Run ${col.name}`}
+                      title="Run all requests"
+                      disabled={col.requests.length === 0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRunCollection(col.id);
+                      }}
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                    </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -205,6 +222,13 @@ export function CollectionSidebar(props: Props) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => onRunCollection(col.id)}
+                          disabled={col.requests.length === 0}
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          Run collection
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() =>
                             openPrompt(
