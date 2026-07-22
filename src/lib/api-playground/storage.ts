@@ -1,9 +1,11 @@
-import type { Collection, Environment, SavedRequest } from "./types";
+import type { Collection, Environment, HistoryEntry, SavedRequest } from "./types";
 
 const COLLECTIONS_KEY = "api-playground:collections:v2";
 const LEGACY_COLLECTION_KEY = "api-playground:collection:v1";
 const ENVIRONMENTS_KEY = "api-playground:environments:v1";
 const ACTIVE_ENV_KEY = "api-playground:active-env:v1";
+const HISTORY_KEY = "api-playground:history:v1";
+const HISTORY_LIMIT = 50;
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
