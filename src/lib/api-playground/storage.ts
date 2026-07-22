@@ -70,3 +70,40 @@ export function saveActiveEnvId(id: string | null): void {
   if (id) window.localStorage.setItem(ACTIVE_ENV_KEY, id);
   else window.localStorage.removeItem(ACTIVE_ENV_KEY);
 }
+
+type HistoryMap = Record<string, HistoryEntry[]>;
+
+export function loadHistoryMap(): HistoryMap {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(HISTORY_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") return parsed as HistoryMap;
+    }
+  } catch {
+    /* ignore */
+  }
+  return {};
+}
+
+export function saveHistoryMap(map: HistoryMap): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(HISTORY_KEY, JSON.stringify(map));
+}
+
+export function appendHistory(
+  map: HistoryMap,
+  key: string,
+  entry: HistoryEntry,
+): HistoryMap {
+  const list = map[key] ? [entry, ...map[key]] : [entry];
+  const trimmed = list.slice(0, HISTORY_LIMIT);
+  return { ...map, [key]: trimmed };
+}
+
+export function clearHistoryFor(map: HistoryMap, key: string): HistoryMap {
+  const next = { ...map };
+  delete next[key];
+  return next;
+}
