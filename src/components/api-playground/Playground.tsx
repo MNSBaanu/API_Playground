@@ -559,6 +559,12 @@ export function Playground() {
                 onSaveVariable={setSessionVar}
                 onSaveExtractor={activeRequestId ? handleSaveExtractor : undefined}
                 canSaveExtractor={!!activeRequestId}
+                history={currentHistory}
+                historySelectedIds={historySelectedIds}
+                onToggleHistorySelect={toggleHistorySelect}
+                onLoadHistoryEntry={loadHistoryEntry}
+                onClearHistory={clearHistoryForCurrent}
+                onCompareHistory={compareSelected}
               />
             </div>
           </div>
