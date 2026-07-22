@@ -22,6 +22,7 @@ import type {
   Collection,
   Environment,
   Extractor,
+  HistoryEntry,
   RequestState,
   ResponseResult,
   RunStep,
