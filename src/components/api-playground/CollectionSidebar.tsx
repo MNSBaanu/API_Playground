@@ -78,6 +78,7 @@ export function CollectionSidebar(props: Props) {
     onDuplicateRequest,
     onDeleteRequest,
     onMoveRequest,
+    onRunCollection,
     currentRequest,
   } = props;
 
