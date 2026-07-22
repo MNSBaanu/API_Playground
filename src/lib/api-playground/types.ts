@@ -16,6 +16,12 @@ export type SavedRequest = {
   createdAt: number;
 };
 
+export type Collection = {
+  id: string;
+  name: string;
+  requests: SavedRequest[];
+};
+
 export type ResponseResult = {
   status: number;
   statusText: string;
