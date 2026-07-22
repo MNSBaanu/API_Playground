@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { RequestEditor } from "./RequestEditor";
 import { ResponseViewer } from "./ResponseViewer";
 import { CollectionSidebar } from "./CollectionSidebar";
-import { loadCollection, saveCollection } from "@/lib/api-playground/storage";
+import { loadCollections, saveCollections } from "@/lib/api-playground/storage";
 import type {
+  Collection,
   RequestState,
   ResponseResult,
   SavedRequest,
@@ -23,19 +24,20 @@ function uid() {
 
 export function Playground() {
   const [request, setRequest] = useState<RequestState>(DEFAULT_REQUEST);
-  const [collection, setCollection] = useState<SavedRequest[]>([]);
+  const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<ResponseResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [bodyError, setBodyError] = useState<string | null>(null);
 
   useEffect(() => {
-    setCollection(loadCollection());
+    setCollections(loadCollections());
   }, []);
 
-  const persist = (next: SavedRequest[]) => {
-    setCollection(next);
-    saveCollection(next);
+  const persist = (next: Collection[]) => {
+    setCollections(next);
+    saveCollections(next);
   };
 
   const handleSend = async () => {
@@ -104,25 +106,98 @@ export function Playground() {
     }
   };
 
-  const handleSave = (name: string) => {
+  const handleCreateCollection = (name: string) => {
+    persist([...collections, { id: uid(), name, requests: [] }]);
+  };
+
+  const handleRenameCollection = (id: string, name: string) => {
+    persist(collections.map((c) => (c.id === id ? { ...c, name } : c)));
+  };
+
+  const handleDeleteCollection = (id: string) => {
+    persist(collections.filter((c) => c.id !== id));
+  };
+
+  const handleSaveCurrentTo = (collectionId: string, name: string) => {
     const saved: SavedRequest = {
       id: uid(),
       name,
       request,
       createdAt: Date.now(),
     };
-    persist([saved, ...collection]);
+    persist(
+      collections.map((c) =>
+        c.id === collectionId ? { ...c, requests: [...c.requests, saved] } : c,
+      ),
+    );
+    setActiveRequestId(saved.id);
   };
 
   const handleLoad = (item: SavedRequest) => {
     setRequest(item.request);
+    setActiveRequestId(item.id);
     setResult(null);
     setError(null);
     setBodyError(null);
   };
 
-  const handleDelete = (id: string) => {
-    persist(collection.filter((c) => c.id !== id));
+  const handleRenameRequest = (collectionId: string, requestId: string, name: string) => {
+    persist(
+      collections.map((c) =>
+        c.id === collectionId
+          ? {
+              ...c,
+              requests: c.requests.map((r) => (r.id === requestId ? { ...r, name } : r)),
+            }
+          : c,
+      ),
+    );
+  };
+
+  const handleDuplicateRequest = (collectionId: string, requestId: string) => {
+    persist(
+      collections.map((c) => {
+        if (c.id !== collectionId) return c;
+        const idx = c.requests.findIndex((r) => r.id === requestId);
+        if (idx === -1) return c;
+        const orig = c.requests[idx];
+        const copy: SavedRequest = {
+          ...orig,
+          id: uid(),
+          name: `${orig.name} (copy)`,
+          createdAt: Date.now(),
+        };
+        const next = [...c.requests];
+        next.splice(idx + 1, 0, copy);
+        return { ...c, requests: next };
+      }),
+    );
+  };
+
+  const handleDeleteRequest = (collectionId: string, requestId: string) => {
+    persist(
+      collections.map((c) =>
+        c.id === collectionId
+          ? { ...c, requests: c.requests.filter((r) => r.id !== requestId) }
+          : c,
+      ),
+    );
+    if (activeRequestId === requestId) setActiveRequestId(null);
+  };
+
+  const handleMoveRequest = (fromId: string, requestId: string, toId: string) => {
+    if (fromId === toId) return;
+    const from = collections.find((c) => c.id === fromId);
+    const req = from?.requests.find((r) => r.id === requestId);
+    if (!from || !req) return;
+    persist(
+      collections.map((c) => {
+        if (c.id === fromId)
+          return { ...c, requests: c.requests.filter((r) => r.id !== requestId) };
+        if (c.id === toId) return { ...c, requests: [...c.requests, req] };
+        return c;
+      }),
+    );
   };
 
   return (
@@ -136,11 +211,18 @@ export function Playground() {
 
       <div className="flex flex-1 overflow-hidden">
         <CollectionSidebar
-          items={collection}
+          collections={collections}
+          activeRequestId={activeRequestId}
+          currentRequest={request}
           onLoad={handleLoad}
-          onDelete={handleDelete}
-          onSave={handleSave}
-          canSave={!!request.url}
+          onCreateCollection={handleCreateCollection}
+          onRenameCollection={handleRenameCollection}
+          onDeleteCollection={handleDeleteCollection}
+          onSaveCurrentTo={handleSaveCurrentTo}
+          onRenameRequest={handleRenameRequest}
+          onDuplicateRequest={handleDuplicateRequest}
+          onDeleteRequest={handleDeleteRequest}
+          onMoveRequest={handleMoveRequest}
         />
 
         <main className="flex-1 overflow-auto">
