@@ -5,13 +5,18 @@ import { CollectionSidebar } from "./CollectionSidebar";
 import { EnvironmentManager } from "./EnvironmentManager";
 import { VariablesPanel } from "./VariablesPanel";
 import { RunCollectionDialog } from "./RunCollectionDialog";
+import { CompareDialog } from "./CompareDialog";
 import {
+  appendHistory,
+  clearHistoryFor,
   loadActiveEnvId,
   loadCollections,
   loadEnvironments,
+  loadHistoryMap,
   saveActiveEnvId,
   saveCollections,
   saveEnvironments,
+  saveHistoryMap,
 } from "@/lib/api-playground/storage";
 import type {
   Collection,
