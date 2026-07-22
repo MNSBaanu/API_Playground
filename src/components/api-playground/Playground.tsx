@@ -153,11 +153,36 @@ export function Playground() {
   const [runTotal, setRunTotal] = useState(0);
   const [running, setRunning] = useState(false);
 
+  const [historyMap, setHistoryMap] = useState<Record<string, HistoryEntry[]>>({});
+  const [historySelectedIds, setHistorySelectedIds] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
+
   useEffect(() => {
     setCollections(loadCollections());
     setEnvironments(loadEnvironments());
     setActiveEnvId(loadActiveEnvId());
+    setHistoryMap(loadHistoryMap());
   }, []);
+
+  const historyKey = activeRequestId ?? "__adhoc__";
+  const currentHistory = historyMap[historyKey] ?? [];
+
+  useEffect(() => {
+    setHistorySelectedIds([]);
+  }, [historyKey]);
+
+  const persistHistoryMap = (next: Record<string, HistoryEntry[]>) => {
+    setHistoryMap(next);
+    saveHistoryMap(next);
+  };
+
+  const recordHistory = (entry: HistoryEntry, key: string) => {
+    setHistoryMap((prev) => {
+      const next = appendHistory(prev, key, entry);
+      saveHistoryMap(next);
+      return next;
+    });
+  };
 
   const persistCollections = (next: Collection[]) => {
     setCollections(next);
