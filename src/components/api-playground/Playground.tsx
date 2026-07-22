@@ -219,15 +219,91 @@ export function Playground() {
     }
 
     setSending(true);
+    const key = historyKey;
     try {
       const { result: res } = await executeRequest(prepared);
       setResult(res);
+      recordHistory(
+        {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          timestamp: Date.now(),
+          method: request.method,
+          url: prepared.url,
+          status: res.status,
+          statusText: res.statusText,
+          timeMs: res.timeMs,
+          sizeBytes: res.sizeBytes,
+          headers: res.headers,
+          body: res.body,
+          isJson: res.isJson,
+        },
+        key,
+      );
     } catch (e) {
-      setError((e as Error).message || "Network error");
+      const msg = (e as Error).message || "Network error";
+      setError(msg);
+      recordHistory(
+        {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          timestamp: Date.now(),
+          method: request.method,
+          url: prepared.url,
+          status: null,
+          statusText: "",
+          timeMs: null,
+          sizeBytes: null,
+          headers: {},
+          body: "",
+          isJson: false,
+          error: msg,
+        },
+        key,
+      );
     } finally {
       setSending(false);
     }
   };
+
+  const toggleHistorySelect = (id: string) => {
+    setHistorySelectedIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 2) return prev;
+      return [...prev, id];
+    });
+  };
+
+  const loadHistoryEntry = (entry: HistoryEntry) => {
+    if (entry.status == null) {
+      setResult(null);
+      setError(entry.error ?? "Request failed");
+      return;
+    }
+    setError(null);
+    setResult({
+      status: entry.status,
+      statusText: entry.statusText,
+      headers: entry.headers,
+      body: entry.body,
+      isJson: entry.isJson,
+      timeMs: entry.timeMs ?? 0,
+      sizeBytes: entry.sizeBytes ?? 0,
+    });
+  };
+
+  const clearHistoryForCurrent = () => {
+    const next = clearHistoryFor(historyMap, historyKey);
+    persistHistoryMap(next);
+    setHistorySelectedIds([]);
+  };
+
+  const compareSelected = () => {
+    if (historySelectedIds.length === 2) setCompareOpen(true);
+  };
+
+  const compareLeft =
+    currentHistory.find((e) => e.id === historySelectedIds[0]) ?? null;
+  const compareRight =
+    currentHistory.find((e) => e.id === historySelectedIds[1]) ?? null;
 
   // Session variables
   const setSessionVar = (name: string, value: string) => {
