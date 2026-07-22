@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BookmarkPlus, Save } from "lucide-react";
-import type { ResponseResult } from "@/lib/api-playground/types";
+import type { HistoryEntry, ResponseResult } from "@/lib/api-playground/types";
 import { extractByPath, stringifyExtracted } from "@/lib/api-playground/variables";
+import { HistoryPanel } from "./HistoryPanel";
 
 type Props = {
   result: ResponseResult | null;
@@ -15,6 +16,12 @@ type Props = {
   onSaveVariable: (name: string, value: string) => void;
   onSaveExtractor?: (name: string, path: string) => void;
   canSaveExtractor: boolean;
+  history: HistoryEntry[];
+  historySelectedIds: string[];
+  onToggleHistorySelect: (id: string) => void;
+  onLoadHistoryEntry: (entry: HistoryEntry) => void;
+  onClearHistory: () => void;
+  onCompareHistory: () => void;
 };
 
 function statusVariant(status: number) {
