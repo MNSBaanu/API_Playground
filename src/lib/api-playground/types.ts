@@ -47,6 +47,21 @@ export type ResponseResult = {
   sizeBytes: number;
 };
 
+export type HistoryEntry = {
+  id: string;
+  timestamp: number;
+  method: HttpMethod;
+  url: string;
+  status: number | null;
+  statusText: string;
+  timeMs: number | null;
+  sizeBytes: number | null;
+  headers: Record<string, string>;
+  body: string;
+  isJson: boolean;
+  error?: string;
+};
+
 export type RunStep = {
   requestId: string;
   name: string;
