@@ -451,6 +451,23 @@ export function Playground() {
         const { result: res, parsed, isJson } = await executeRequest(prepared);
         step = { ...step, status: res.status, timeMs: res.timeMs, ok: res.status < 400 };
 
+        recordHistory(
+          {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            timestamp: Date.now(),
+            method: saved.request.method,
+            url: prepared.url,
+            status: res.status,
+            statusText: res.statusText,
+            timeMs: res.timeMs,
+            sizeBytes: res.sizeBytes,
+            headers: res.headers,
+            body: res.body,
+            isJson: res.isJson,
+          },
+          saved.id,
+        );
+
         for (const ex of saved.extractors ?? []) {
           if (!isJson || parsed == null) {
             extracted.push({ name: ex.name, value: null });
@@ -466,7 +483,25 @@ export function Playground() {
           }
         }
       } catch (e) {
-        step = { ...step, error: (e as Error).message || "Network error" };
+        const msg = (e as Error).message || "Network error";
+        step = { ...step, error: msg };
+        recordHistory(
+          {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            timestamp: Date.now(),
+            method: saved.request.method,
+            url: prepared.url,
+            status: null,
+            statusText: "",
+            timeMs: null,
+            sizeBytes: null,
+            headers: {},
+            body: "",
+            isJson: false,
+            error: msg,
+          },
+          saved.id,
+        );
       }
 
       setRunSteps((s) => [...s, step]);
