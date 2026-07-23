@@ -30,3 +30,24 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# TypeScript incremental build info
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Test / coverage
+coverage
+.nyc_output
+
+# Caches
+.cache
+.eslintcache
+.turbo
+
+# OS
+Thumbs.db
