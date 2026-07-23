@@ -10,11 +10,11 @@ export const Route = createFileRoute("/")({
         content:
           "Compose HTTP requests, inspect responses, and save reusable requests to a collection.",
       },
-      { property: "og:title", content: "API Playground" },
+      { property: "og:title", content: "API Playground — Internal HTTP Testing Tool" },
       {
         property: "og:description",
         content:
-          "Internal tool for testing REST APIs: methods, headers, JSON bodies, and saved collections.",
+          "Compose HTTP requests, inspect responses, and save reusable requests to a collection.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

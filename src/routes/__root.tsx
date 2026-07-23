@@ -77,14 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "API Playground — Internal HTTP Testing Tool" },
+      { name: "description", content: "Compose HTTP requests, inspect responses, and save reusable requests to a collection." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "API Playground — Internal HTTP Testing Tool" },
+      { property: "og:description", content: "Compose HTTP requests, inspect responses, and save reusable requests to a collection." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "API Playground — Internal HTTP Testing Tool" },
+      { name: "twitter:description", content: "Compose HTTP requests, inspect responses, and save reusable requests to a collection." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2a4cca63-c63d-40f2-b23f-01ccb7fbe454/id-preview-f932ac6d--6bccdeaf-f6e6-4fc4-b85e-b8dee3be291c.lovable.app-1784814852076.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2a4cca63-c63d-40f2-b23f-01ccb7fbe454/id-preview-f932ac6d--6bccdeaf-f6e6-4fc4-b85e-b8dee3be291c.lovable.app-1784814852076.png" },
     ],
     links: [
       {
