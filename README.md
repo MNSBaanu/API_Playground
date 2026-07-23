@@ -1,29 +1,99 @@
-# Welcome to your Lovable project
+# API Playground
 
-This project was built with [Lovable](https://lovable.dev).
+A fully client-side API testing playground built with **TanStack Start**, **React**, **TypeScript**, and **Tailwind CSS**. Think of it as a lightweight, in-browser alternative to Postman/Insomnia — no backend, no account, no telemetry. All state lives in `localStorage`.
 
-## Build with Lovable
+## Features
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+- **Request editor** — GET / POST / PUT / PATCH / DELETE, custom headers, JSON body with formatter.
+- **Response viewer** — status code, response time, size, pretty-printed body, headers table.
+- **Collections** — organize saved requests into named folders, drag-and-drop between collections, rename/duplicate/delete.
+- **Environments** — define variable sets (Dev, Staging, Prod) and reference them with `{{VAR}}` syntax in URLs, headers, and bodies. Resolved values are previewed inline.
+- **Request chaining** — extract values from a JSON response (e.g. `data.token`) into session variables, then reuse them in subsequent requests.
+- **Collection runner** — execute every request in a collection sequentially, auto-applying attached extractors.
+- **History** — every send is logged per request (capped at 50). Reload past runs or **compare** any two side-by-side with an LCS-based JSON diff.
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+## Getting started
 
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Requires Node.js 20+ and [bun](https://bun.sh) (or npm).
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+bun install
+bun run dev
 ```
 
-## Built with
+Open http://localhost:8080.
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+### Scripts
+
+| Command           | Description                          |
+| ----------------- | ------------------------------------ |
+| `bun run dev`     | Start the Vite dev server            |
+| `bun run build`   | Production build                     |
+| `bun run preview` | Preview the production build locally |
+| `bun run lint`    | ESLint                               |
+| `bun run format`  | Prettier                             |
+
+## Project structure
+
+```
+src/
+├── routes/                       # File-based routes (TanStack Router)
+│   ├── __root.tsx                # App shell — head tags, providers, <Outlet />
+│   └── index.tsx                 # "/" — renders <Playground />
+│
+├── components/
+│   ├── api-playground/           # Feature components
+│   │   ├── Playground.tsx        # Top-level orchestrator: state, send, run
+│   │   ├── RequestEditor.tsx     # Method, URL, headers, body editor
+│   │   ├── ResponseViewer.tsx    # Body / Headers / Extract / History tabs
+│   │   ├── CollectionSidebar.tsx # Collections tree, drag-drop, CRUD
+│   │   ├── EnvironmentManager.tsx# Environment sets + variables editor
+│   │   ├── VariablesPanel.tsx    # Live view of session + env variables
+│   │   ├── RunCollectionDialog.tsx # Sequential collection runner UI
+│   │   ├── HistoryPanel.tsx      # Per-request history list + selection
+│   │   └── CompareDialog.tsx     # Side-by-side diff of two history entries
+│   └── ui/                       # shadcn/ui primitives
+│
+├── lib/
+│   ├── api-playground/
+│   │   ├── types.ts              # Shared TS types (Request, Collection, Env, History…)
+│   │   ├── storage.ts            # localStorage read/write + v1→v2 migration
+│   │   ├── variables.ts          # {{var}} resolver + JSON-path extractor
+│   │   └── diff.ts               # LCS line-diff utility
+│   └── utils.ts                  # cn() + misc helpers
+│
+├── hooks/                        # Reusable React hooks
+├── router.tsx                    # TanStack Router setup
+├── start.ts                      # Client entry (middleware chain)
+├── server.ts                     # Server entry (SSR)
+└── styles.css                    # Tailwind v4 + design tokens
+```
+
+Routes are file-based — see `src/routes/README.md` for naming conventions. `src/routeTree.gen.ts` is auto-generated; do not edit it.
+
+## Data & privacy
+
+Everything is stored in your browser's `localStorage` under the `api-playground:*` namespace:
+
+- `api-playground:collections` — collections + saved requests
+- `api-playground:environments` — environment variable sets
+- `api-playground:history` — per-request response history (max 50 each)
+- `api-playground:session-vars` — session/override variables
+
+Clearing site data wipes all of it. Nothing is sent to any server.
+
+## Tech stack
+
+- [TanStack Start](https://tanstack.com/start) v1 (React 19 + Vite 7)
+- TypeScript (strict)
+- Tailwind CSS v4
+- [shadcn/ui](https://ui.shadcn.com) + Radix primitives
+- [lucide-react](https://lucide.dev) icons
+
+## Contributing
+
+PRs welcome. Please run `bun run lint` and `bun run format` before opening one.
+
+## License
+
+MIT
