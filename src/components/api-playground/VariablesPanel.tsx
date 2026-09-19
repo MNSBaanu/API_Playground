@@ -36,18 +36,14 @@ function Row({
     <div className="grid grid-cols-[140px_1fr_auto_auto] items-center gap-3 px-3 py-2 text-xs">
       <span className="truncate font-mono font-medium">{name}</span>
       <span
-        className={`truncate font-mono ${
-          overridden ? "text-muted-foreground line-through" : ""
-        }`}
+        className={`truncate font-mono ${overridden ? "text-muted-foreground line-through" : ""}`}
         title={value}
       >
         {value || <span className="italic text-muted-foreground">(empty)</span>}
       </span>
       <span
         className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-          source === "session"
-            ? "bg-primary/15 text-primary"
-            : "bg-muted text-muted-foreground"
+          source === "session" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
         }`}
       >
         {source}
@@ -88,8 +84,7 @@ export function VariablesPanel({
               <div>
                 <h3 className="text-sm font-semibold">Session variables</h3>
                 <p className="text-xs text-muted-foreground">
-                  Extracted from responses. Override environment variables. Cleared on
-                  page reload.
+                  Extracted from responses. Override environment variables. Cleared on page reload.
                 </p>
               </div>
               {sessionEntries.length > 0 && (
@@ -141,13 +136,7 @@ export function VariablesPanel({
                 ) : (
                   <div className="divide-y">
                     {envEntries.map(([k, v]) => (
-                      <Row
-                        key={k}
-                        name={k}
-                        value={v}
-                        source="env"
-                        overridden={k in sessionVars}
-                      />
+                      <Row key={k} name={k} value={v} source="env" overridden={k in sessionVars} />
                     ))}
                   </div>
                 )}

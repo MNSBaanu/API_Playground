@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RequestEditor } from "./RequestEditor";
 import { ResponseViewer } from "./ResponseViewer";
 import { CollectionSidebar } from "./CollectionSidebar";
@@ -67,10 +67,7 @@ type PreparedRequest = {
   bodyError?: string;
 };
 
-function prepareRequest(
-  req: RequestState,
-  vars: Record<string, string>,
-): PreparedRequest {
+function prepareRequest(req: RequestState, vars: Record<string, string>): PreparedRequest {
   const url = resolveVars(req.url, vars);
   const headers: Record<string, string> = {};
   for (const h of req.headers) {
@@ -94,12 +91,13 @@ function prepareRequest(
   return { url, method: req.method, headers, body, bodyError };
 }
 
-async function executeRequest(prepared: PreparedRequest) {
+async function executeRequest(prepared: PreparedRequest, signal: AbortSignal) {
   const start = performance.now();
   const res = await fetch(prepared.url, {
     method: prepared.method,
     headers: prepared.headers,
     body: prepared.body,
+    signal,
   });
   const text = await res.text();
   const timeMs = Math.round(performance.now() - start);
@@ -130,6 +128,12 @@ async function executeRequest(prepared: PreparedRequest) {
   };
 }
 
+function errorMessage(e: unknown) {
+  const err = e as Error;
+  if (err.name === "AbortError") return "Request cancelled";
+  return err.message || "Network error";
+}
+
 export function Playground() {
   const [request, setRequest] = useState<RequestState>(DEFAULT_REQUEST);
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
@@ -152,6 +156,8 @@ export function Playground() {
   const [runIndex, setRunIndex] = useState(0);
   const [runTotal, setRunTotal] = useState(0);
   const [running, setRunning] = useState(false);
+  const sendAbortRef = useRef<AbortController | null>(null);
+  const runAbortRef = useRef<AbortController | null>(null);
 
   const [historyMap, setHistoryMap] = useState<Record<string, HistoryEntry[]>>({});
   const [historySelectedIds, setHistorySelectedIds] = useState<string[]>([]);
@@ -202,10 +208,7 @@ export function Playground() {
     [environments, activeEnvId],
   );
   const envVarMap = useMemo(() => buildVarMap(activeEnv), [activeEnv]);
-  const varMap = useMemo(
-    () => mergeVars(envVarMap, sessionVars),
-    [envVarMap, sessionVars],
-  );
+  const varMap = useMemo(() => mergeVars(envVarMap, sessionVars), [envVarMap, sessionVars]);
 
   const handleSend = async () => {
     setBodyError(null);
@@ -220,8 +223,10 @@ export function Playground() {
 
     setSending(true);
     const key = historyKey;
+    const controller = new AbortController();
+    sendAbortRef.current = controller;
     try {
-      const { result: res } = await executeRequest(prepared);
+      const { result: res } = await executeRequest(prepared, controller.signal);
       setResult(res);
       recordHistory(
         {
@@ -240,7 +245,7 @@ export function Playground() {
         key,
       );
     } catch (e) {
-      const msg = (e as Error).message || "Network error";
+      const msg = errorMessage(e);
       setError(msg);
       recordHistory(
         {
@@ -260,9 +265,12 @@ export function Playground() {
         key,
       );
     } finally {
+      sendAbortRef.current = null;
       setSending(false);
     }
   };
+
+  const handleCancel = () => sendAbortRef.current?.abort();
 
   const toggleHistorySelect = (id: string) => {
     setHistorySelectedIds((prev) => {
@@ -300,10 +308,8 @@ export function Playground() {
     if (historySelectedIds.length === 2) setCompareOpen(true);
   };
 
-  const compareLeft =
-    currentHistory.find((e) => e.id === historySelectedIds[0]) ?? null;
-  const compareRight =
-    currentHistory.find((e) => e.id === historySelectedIds[1]) ?? null;
+  const compareLeft = currentHistory.find((e) => e.id === historySelectedIds[0]) ?? null;
+  const compareRight = currentHistory.find((e) => e.id === historySelectedIds[1]) ?? null;
 
   // Session variables
   const setSessionVar = (name: string, value: string) => {
@@ -326,9 +332,7 @@ export function Playground() {
       collections.map((c) => ({
         ...c,
         requests: c.requests.map((r) =>
-          r.id === activeRequestId
-            ? { ...r, extractors: [...(r.extractors ?? []), extractor] }
-            : r,
+          r.id === activeRequestId ? { ...r, extractors: [...(r.extractors ?? []), extractor] } : r,
         ),
       })),
     );
@@ -339,8 +343,13 @@ export function Playground() {
     persistCollections([...collections, { id: uid(), name, requests: [] }]);
   const handleRenameCollection = (id: string, name: string) =>
     persistCollections(collections.map((c) => (c.id === id ? { ...c, name } : c)));
-  const handleDeleteCollection = (id: string) =>
+  const handleDeleteCollection = (id: string) => {
+    const col = collections.find((c) => c.id === id);
     persistCollections(collections.filter((c) => c.id !== id));
+    if (col) {
+      persistHistoryMap(col.requests.reduce((map, r) => clearHistoryFor(map, r.id), historyMap));
+    }
+  };
   const handleSaveCurrentTo = (collectionId: string, name: string) => {
     const saved: SavedRequest = { id: uid(), name, request, createdAt: Date.now() };
     persistCollections(
@@ -350,6 +359,16 @@ export function Playground() {
     );
     setActiveRequestId(saved.id);
   };
+  const activeSaved =
+    collections.flatMap((c) => c.requests).find((r) => r.id === activeRequestId) ?? null;
+  const isDirty = !!activeSaved && JSON.stringify(activeSaved.request) !== JSON.stringify(request);
+  const handleUpdateRequest = () =>
+    persistCollections(
+      collections.map((c) => ({
+        ...c,
+        requests: c.requests.map((r) => (r.id === activeRequestId ? { ...r, request } : r)),
+      })),
+    );
   const handleLoad = (item: SavedRequest) => {
     setRequest(item.request);
     setActiveRequestId(item.id);
@@ -394,6 +413,7 @@ export function Playground() {
           : c,
       ),
     );
+    persistHistoryMap(clearHistoryFor(historyMap, requestId));
     if (activeRequestId === requestId) setActiveRequestId(null);
   };
   const handleMoveRequest = (fromId: string, requestId: string, toId: string) => {
@@ -422,10 +442,14 @@ export function Playground() {
     setRunning(true);
     setRunOpen(true);
 
+    const controller = new AbortController();
+    runAbortRef.current = controller;
+
     // Local vars snapshot that accumulates during the run.
     let localSession = { ...sessionVars };
 
     for (let i = 0; i < col.requests.length; i++) {
+      if (controller.signal.aborted) break;
       const saved = col.requests[i];
       setRunIndex(i);
       const vars = mergeVars(envVarMap, localSession);
@@ -448,7 +472,7 @@ export function Playground() {
       }
 
       try {
-        const { result: res, parsed, isJson } = await executeRequest(prepared);
+        const { result: res, parsed, isJson } = await executeRequest(prepared, controller.signal);
         step = { ...step, status: res.status, timeMs: res.timeMs, ok: res.status < 400 };
 
         recordHistory(
@@ -483,7 +507,7 @@ export function Playground() {
           }
         }
       } catch (e) {
-        const msg = (e as Error).message || "Network error";
+        const msg = errorMessage(e);
         step = { ...step, error: msg };
         recordHistory(
           {
@@ -507,6 +531,7 @@ export function Playground() {
       setRunSteps((s) => [...s, step]);
     }
 
+    runAbortRef.current = null;
     setSessionVars(localSession);
     setRunIndex(col.requests.length);
     setRunning(false);
@@ -544,9 +569,7 @@ export function Playground() {
               {environments.map((e) => (
                 <SelectItem key={e.id} value={e.id}>
                   {e.name}
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    ({e.variables.length})
-                  </span>
+                  <span className="ml-2 text-xs text-muted-foreground">({e.variables.length})</span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -562,6 +585,8 @@ export function Playground() {
         <CollectionSidebar
           collections={collections}
           activeRequestId={activeRequestId}
+          activeDirty={isDirty}
+          onUpdateActive={activeSaved ? handleUpdateRequest : undefined}
           currentRequest={request}
           onLoad={handleLoad}
           onCreateCollection={handleCreateCollection}
@@ -581,6 +606,7 @@ export function Playground() {
               value={request}
               onChange={setRequest}
               onSend={handleSend}
+              onCancel={handleCancel}
               sending={sending}
               bodyError={bodyError}
               vars={varMap}
@@ -630,6 +656,7 @@ export function Playground() {
         onOpenChange={(o) => {
           if (!running) setRunOpen(o);
         }}
+        onStop={() => runAbortRef.current?.abort()}
         collectionName={runCollectionName}
         running={running}
         steps={runSteps}

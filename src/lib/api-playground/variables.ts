@@ -28,13 +28,9 @@ export function resolveVars(input: string, vars: Record<string, string>): string
 }
 
 export type Segment =
-  | { kind: "text"; text: string }
-  | { kind: "var"; name: string; value: string | null };
+  { kind: "text"; text: string } | { kind: "var"; name: string; value: string | null };
 
-export function tokenizeWithVars(
-  input: string,
-  vars: Record<string, string>,
-): Segment[] {
+export function tokenizeWithVars(input: string, vars: Record<string, string>): Segment[] {
   const out: Segment[] = [];
   let lastIndex = 0;
   const re = new RegExp(TOKEN_RE.source, "g");
@@ -63,7 +59,7 @@ export function extractByPath(root: unknown, path: string): unknown {
   const clean = path.trim().replace(/^\$\.?/, "");
   if (!clean) return root;
   const parts: (string | number)[] = [];
-  const re = /([^.\[\]]+)|\[(\d+)\]/g;
+  const re = /([^.[\]]+)|\[(\d+)\]/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(clean)) !== null) {
     if (m[1] !== undefined) parts.push(m[1]);

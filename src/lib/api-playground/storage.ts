@@ -6,6 +6,7 @@ const ENVIRONMENTS_KEY = "api-playground:environments:v1";
 const ACTIVE_ENV_KEY = "api-playground:active-env:v1";
 const HISTORY_KEY = "api-playground:history:v1";
 const HISTORY_LIMIT = 50;
+const HISTORY_MAX_CHARS = 1_000_000;
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -23,9 +24,7 @@ export function loadCollections(): Collection[] {
     if (legacy) {
       const items = JSON.parse(legacy) as SavedRequest[];
       if (Array.isArray(items) && items.length) {
-        const migrated: Collection[] = [
-          { id: uid(), name: "My Collection", requests: items },
-        ];
+        const migrated: Collection[] = [{ id: uid(), name: "My Collection", requests: items }];
         window.localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(migrated));
         return migrated;
       }
@@ -89,14 +88,26 @@ export function loadHistoryMap(): HistoryMap {
 
 export function saveHistoryMap(map: HistoryMap): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(HISTORY_KEY, JSON.stringify(map));
+  const all = Object.entries(map)
+    .flatMap(([key, list]) =>
+      list.map((entry) => ({ key, entry, size: JSON.stringify(entry).length })),
+    )
+    .sort((a, b) => b.entry.timestamp - a.entry.timestamp);
+  const kept: HistoryMap = {};
+  let total = 0;
+  for (const { key, entry, size } of all) {
+    if (total + size > HISTORY_MAX_CHARS) continue;
+    total += size;
+    (kept[key] ??= []).push(entry);
+  }
+  try {
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(kept));
+  } catch {
+    /* ignore */
+  }
 }
 
-export function appendHistory(
-  map: HistoryMap,
-  key: string,
-  entry: HistoryEntry,
-): HistoryMap {
+export function appendHistory(map: HistoryMap, key: string, entry: HistoryEntry): HistoryMap {
   const list = map[key] ? [entry, ...map[key]] : [entry];
   const trimmed = list.slice(0, HISTORY_LIMIT);
   return { ...map, [key]: trimmed };

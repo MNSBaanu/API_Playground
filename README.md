@@ -6,7 +6,7 @@ A fully client-side API testing playground built with **TanStack Start**, **Reac
 
 - **Request editor** — GET / POST / PUT / PATCH / DELETE, custom headers, JSON body with formatter.
 - **Response viewer** — status code, response time, size, pretty-printed body, headers table.
-- **Collections** — organize saved requests into named folders, drag-and-drop between collections, rename/duplicate/delete.
+- **Collections** — organize saved requests into named folders, drag-and-drop between collections, rename/duplicate/delete, save edits back to a loaded request.
 - **Environments** — define variable sets (Dev, Staging, Prod) and reference them with `{{VAR}}` syntax in URLs, headers, and bodies. Resolved values are previewed inline.
 - **Request chaining** — extract values from a JSON response (e.g. `data.token`) into session variables, then reuse them in subsequent requests.
 - **Collection runner** — execute every request in a collection sequentially, auto-applying attached extractors.
@@ -64,7 +64,7 @@ src/
 │
 ├── hooks/                        # Reusable React hooks
 ├── router.tsx                    # TanStack Router setup
-├── start.ts                      # Client entry (middleware chain)
+├── start.ts                      # Start instance (server request middleware)
 ├── server.ts                     # Server entry (SSR)
 └── styles.css                    # Tailwind v4 + design tokens
 ```
@@ -75,16 +75,16 @@ Routes are file-based — see `src/routes/README.md` for naming conventions. `sr
 
 Everything is stored in your browser's `localStorage` under the `api-playground:*` namespace:
 
-- `api-playground:collections` — collections + saved requests
-- `api-playground:environments` — environment variable sets
-- `api-playground:history` — per-request response history (max 50 each)
-- `api-playground:session-vars` — session/override variables
+- `api-playground:collections:v2` — collections + saved requests
+- `api-playground:environments:v1` — environment variable sets
+- `api-playground:active-env:v1` — the selected environment
+- `api-playground:history:v1` — per-request response history (max 50 each; oldest entries are dropped once stored history passes ~1M characters)
 
-Clearing site data wipes all of it. Nothing is sent to any server.
+Session variables are kept in memory only and are cleared on page reload. Clearing site data wipes all of it. Nothing is sent to any server.
 
 ## Tech stack
 
-- [TanStack Start](https://tanstack.com/start) v1 (React 19 + Vite 7)
+- [TanStack Start](https://tanstack.com/start) v1 (React 19 + Vite 8)
 - TypeScript (strict)
 - Tailwind CSS v4
 - [shadcn/ui](https://ui.shadcn.com) + Radix primitives

@@ -79,9 +79,7 @@ export function EnvironmentManager({
   const updateVar = (varId: string, patch: Partial<EnvVariable>) => {
     if (!selected) return;
     updateEnv(selected.id, {
-      variables: selected.variables.map((v) =>
-        v.id === varId ? { ...v, ...patch } : v,
-      ),
+      variables: selected.variables.map((v) => (v.id === varId ? { ...v, ...patch } : v)),
     });
   };
 
@@ -102,9 +100,7 @@ export function EnvironmentManager({
         <div className="grid min-h-[380px] grid-cols-[220px_1fr] gap-4">
           <div className="flex flex-col rounded-md border">
             <div className="flex items-center justify-between border-b p-2">
-              <span className="text-xs font-medium text-muted-foreground">
-                Environments
-              </span>
+              <span className="text-xs font-medium text-muted-foreground">Environments</span>
               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={createEnv}>
                 <Plus className="h-4 w-4" />
               </Button>
@@ -155,9 +151,7 @@ export function EnvironmentManager({
                   <Button
                     variant={selected.id === activeEnvId ? "secondary" : "outline"}
                     size="sm"
-                    onClick={() =>
-                      onActiveChange(selected.id === activeEnvId ? null : selected.id)
-                    }
+                    onClick={() => onActiveChange(selected.id === activeEnvId ? null : selected.id)}
                   >
                     {selected.id === activeEnvId ? "Deactivate" : "Set active"}
                   </Button>

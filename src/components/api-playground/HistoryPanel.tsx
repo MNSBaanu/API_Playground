@@ -15,8 +15,7 @@ type Props = {
 };
 
 function statusColor(status: number | null) {
-  if (status == null)
-    return "bg-destructive/15 text-destructive border-destructive/30";
+  if (status == null) return "bg-destructive/15 text-destructive border-destructive/30";
   if (status >= 200 && status < 300)
     return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30";
   if (status >= 300 && status < 400)
@@ -69,12 +68,7 @@ export function HistoryPanel({
             <GitCompareArrows className="mr-1.5 h-3.5 w-3.5" />
             Compare
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 text-muted-foreground"
-            onClick={onClear}
-          >
+          <Button size="sm" variant="ghost" className="h-7 text-muted-foreground" onClick={onClear}>
             <Trash2 className="mr-1.5 h-3.5 w-3.5" />
             Clear
           </Button>
@@ -86,25 +80,17 @@ export function HistoryPanel({
             const checked = selectedIds.includes(e.id);
             const disabled = !checked && selectedIds.length >= 2;
             return (
-              <li
-                key={e.id}
-                className="flex items-center gap-3 px-3 py-2 text-xs"
-              >
+              <li key={e.id} className="flex items-center gap-3 px-3 py-2 text-xs">
                 <Checkbox
                   checked={checked}
                   disabled={disabled}
                   onCheckedChange={() => onToggleSelect(e.id)}
                   aria-label="Select for compare"
                 />
-                <Badge
-                  variant="outline"
-                  className={`${statusColor(e.status)} font-mono`}
-                >
+                <Badge variant="outline" className={`${statusColor(e.status)} font-mono`}>
                   {e.status ?? "ERR"}
                 </Badge>
-                <span className="w-16 shrink-0 font-mono text-[11px] font-medium">
-                  {e.method}
-                </span>
+                <span className="w-16 shrink-0 font-mono text-[11px] font-medium">{e.method}</span>
                 <span className="w-20 shrink-0 text-muted-foreground">
                   {e.timeMs != null ? `${e.timeMs} ms` : "—"}
                 </span>

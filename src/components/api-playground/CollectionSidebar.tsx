@@ -29,6 +29,7 @@ import {
   Pencil,
   Play,
   Plus,
+  Save,
   Trash2,
   FolderOpen,
 } from "lucide-react";
@@ -37,6 +38,8 @@ import type { Collection, RequestState, SavedRequest } from "@/lib/api-playgroun
 type Props = {
   collections: Collection[];
   activeRequestId: string | null;
+  activeDirty: boolean;
+  onUpdateActive?: () => void;
   currentRequest: RequestState;
   onLoad: (item: SavedRequest) => void;
   onCreateCollection: (name: string) => void;
@@ -69,6 +72,8 @@ export function CollectionSidebar(props: Props) {
   const {
     collections,
     activeRequestId,
+    activeDirty,
+    onUpdateActive,
     onLoad,
     onCreateCollection,
     onRenameCollection,
@@ -89,8 +94,7 @@ export function CollectionSidebar(props: Props) {
 
   const isExpanded = (id: string) => expanded[id] !== false; // default open
 
-  const toggle = (id: string) =>
-    setExpanded((s) => ({ ...s, [id]: !isExpanded(id) }));
+  const toggle = (id: string) => setExpanded((s) => ({ ...s, [id]: !isExpanded(id) }));
 
   const openPrompt = (p: Exclude<PromptState, null>, initial = "") => {
     setPrompt(p);
@@ -113,12 +117,12 @@ export function CollectionSidebar(props: Props) {
     prompt?.kind === "new-collection"
       ? "New collection"
       : prompt?.kind === "rename-collection"
-      ? "Rename collection"
-      : prompt?.kind === "rename-request"
-      ? "Rename request"
-      : prompt?.kind === "save-current"
-      ? "Save request"
-      : "";
+        ? "Rename collection"
+        : prompt?.kind === "rename-request"
+          ? "Rename request"
+          : prompt?.kind === "save-current"
+            ? "Save request"
+            : "";
 
   return (
     <aside className="flex h-full w-72 shrink-0 flex-col border-r bg-muted/20">
@@ -278,10 +282,7 @@ export function CollectionSidebar(props: Props) {
                               key={req.id}
                               draggable
                               onDragStart={(e) => {
-                                e.dataTransfer.setData(
-                                  "application/x-req",
-                                  `${col.id}::${req.id}`,
-                                );
+                                e.dataTransfer.setData("application/x-req", `${col.id}::${req.id}`);
                                 e.dataTransfer.effectAllowed = "move";
                               }}
                               className={`group flex items-center gap-1 rounded-md px-1.5 py-1 ${
@@ -300,6 +301,12 @@ export function CollectionSidebar(props: Props) {
                                   {req.request.method}
                                 </span>
                                 <span className="truncate text-sm">{req.name}</span>
+                                {active && activeDirty && (
+                                  <span
+                                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"
+                                    title="Unsaved changes"
+                                  />
+                                )}
                               </button>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -347,9 +354,7 @@ export function CollectionSidebar(props: Props) {
                                           .map((c) => (
                                             <DropdownMenuItem
                                               key={c.id}
-                                              onClick={() =>
-                                                onMoveRequest(col.id, req.id, c.id)
-                                              }
+                                              onClick={() => onMoveRequest(col.id, req.id, c.id)}
                                             >
                                               {c.name}
                                             </DropdownMenuItem>
@@ -380,7 +385,19 @@ export function CollectionSidebar(props: Props) {
         )}
       </ScrollArea>
 
-      <div className="border-t p-3">
+      <div className="space-y-2 border-t p-3">
+        {onUpdateActive && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full"
+            disabled={!activeDirty}
+            onClick={onUpdateActive}
+          >
+            <Save className="mr-2 h-4 w-4" />
+            {activeDirty ? "Save changes" : "No unsaved changes"}
+          </Button>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button size="sm" className="w-full" disabled={!currentRequest.url}>
@@ -390,9 +407,7 @@ export function CollectionSidebar(props: Props) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             {collections.length === 0 ? (
-              <DropdownMenuItem
-                onClick={() => openPrompt({ kind: "new-collection" })}
-              >
+              <DropdownMenuItem onClick={() => openPrompt({ kind: "new-collection" })}>
                 <FolderPlus className="mr-2 h-4 w-4" />
                 Create a collection first
               </DropdownMenuItem>

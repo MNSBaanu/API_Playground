@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Send, Trash2 } from "lucide-react";
+import { Plus, Send, Trash2, X } from "lucide-react";
 import type { HeaderRow, HttpMethod, RequestState } from "@/lib/api-playground/types";
 import { METHODS_WITH_BODY } from "@/lib/api-playground/types";
 import { tokenizeWithVars } from "@/lib/api-playground/variables";
@@ -20,6 +20,7 @@ type Props = {
   value: RequestState;
   onChange: (next: RequestState) => void;
   onSend: () => void;
+  onCancel: () => void;
   sending: boolean;
   bodyError?: string | null;
   vars: Record<string, string>;
@@ -66,7 +67,15 @@ function TokenPreview({ text, vars }: { text: string; vars: Record<string, strin
   );
 }
 
-export function RequestEditor({ value, onChange, onSend, sending, bodyError, vars }: Props) {
+export function RequestEditor({
+  value,
+  onChange,
+  onSend,
+  onCancel,
+  sending,
+  bodyError,
+  vars,
+}: Props) {
   const showBody = METHODS_WITH_BODY.includes(value.method);
 
   const updateHeader = (id: string, patch: Partial<HeaderRow>) => {
@@ -123,10 +132,17 @@ export function RequestEditor({ value, onChange, onSend, sending, bodyError, var
           }}
           className="flex-1 font-mono text-sm"
         />
-        <Button onClick={onSend} disabled={sending || !value.url}>
-          <Send className="mr-2 h-4 w-4" />
-          {sending ? "Sending..." : "Send"}
-        </Button>
+        {sending ? (
+          <Button variant="outline" onClick={onCancel}>
+            <X className="mr-2 h-4 w-4" />
+            Cancel
+          </Button>
+        ) : (
+          <Button onClick={onSend} disabled={!value.url}>
+            <Send className="mr-2 h-4 w-4" />
+            Send
+          </Button>
+        )}
       </div>
 
       <TokenPreview text={value.url} vars={vars} />

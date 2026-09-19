@@ -1,10 +1,5 @@
 import { useMemo } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { diffLines } from "@/lib/api-playground/diff";
@@ -33,20 +28,14 @@ function tryPretty(entry: HistoryEntry) {
 function Meta({ label, entry }: { label: string; entry: HistoryEntry }) {
   return (
     <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2 text-xs">
-      <span className="font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
+      <span className="font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
       {entry.status != null && (
         <Badge variant="outline" className="font-mono">
           {entry.status}
         </Badge>
       )}
-      {entry.timeMs != null && (
-        <span className="text-muted-foreground">{entry.timeMs} ms</span>
-      )}
-      <span className="ml-auto text-muted-foreground">
-        {formatTs(entry.timestamp)}
-      </span>
+      {entry.timeMs != null && <span className="text-muted-foreground">{entry.timeMs} ms</span>}
+      <span className="ml-auto text-muted-foreground">{formatTs(entry.timestamp)}</span>
     </div>
   );
 }
@@ -75,9 +64,7 @@ export function CompareDialog({ open, onOpenChange, left, right }: Props) {
             Compare responses
             {left && right && (
               <span className="text-xs font-normal text-muted-foreground">
-                <span className="text-emerald-600 dark:text-emerald-400">
-                  +{stats.adds}
-                </span>{" "}
+                <span className="text-emerald-600 dark:text-emerald-400">+{stats.adds}</span>{" "}
                 <span className="text-destructive">-{stats.dels}</span>
               </span>
             )}
@@ -85,9 +72,7 @@ export function CompareDialog({ open, onOpenChange, left, right }: Props) {
         </DialogHeader>
 
         {!left || !right ? (
-          <p className="text-sm text-muted-foreground">
-            Select two history entries to compare.
-          </p>
+          <p className="text-sm text-muted-foreground">Select two history entries to compare.</p>
         ) : (
           <div className="grid grid-cols-2 overflow-hidden rounded-md border">
             <div className="border-r">
@@ -113,9 +98,7 @@ export function CompareDialog({ open, onOpenChange, left, right }: Props) {
                       <span className="mr-2 select-none text-muted-foreground/60">
                         {r.type === "del" ? "-" : r.type === "add" ? " " : " "}
                       </span>
-                      <span className="whitespace-pre-wrap break-all">
-                        {r.left ?? ""}
-                      </span>
+                      <span className="whitespace-pre-wrap break-all">{r.left ?? ""}</span>
                     </div>
                   ))}
                 </div>
@@ -134,9 +117,7 @@ export function CompareDialog({ open, onOpenChange, left, right }: Props) {
                       <span className="mr-2 select-none text-muted-foreground/60">
                         {r.type === "add" ? "+" : r.type === "del" ? " " : " "}
                       </span>
-                      <span className="whitespace-pre-wrap break-all">
-                        {r.right ?? ""}
-                      </span>
+                      <span className="whitespace-pre-wrap break-all">{r.right ?? ""}</span>
                     </div>
                   ))}
                 </div>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,8 +68,7 @@ function ExtractPanel({
     return extractByPath(parsed, path);
   }, [parsed, path]);
 
-  const previewString =
-    previewValue == null ? "" : stringifyExtracted(previewValue);
+  const previewString = previewValue == null ? "" : stringifyExtracted(previewValue);
 
   if (!result.isJson) {
     return (
@@ -84,16 +83,13 @@ function ExtractPanel({
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Extract a value from the JSON response and save it as a variable for later
-        requests. Paths use dot/bracket notation, e.g.{" "}
-        <code className="font-mono">data.token</code> or{" "}
+        Extract a value from the JSON response and save it as a variable for later requests. Paths
+        use dot/bracket notation, e.g. <code className="font-mono">data.token</code> or{" "}
         <code className="font-mono">users[0].id</code>.
       </p>
       <div className="grid grid-cols-[1fr_1.5fr] gap-2">
         <div>
-          <label className="text-xs font-medium text-muted-foreground">
-            Variable name
-          </label>
+          <label className="text-xs font-medium text-muted-foreground">Variable name</label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -102,9 +98,7 @@ function ExtractPanel({
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground">
-            JSON path
-          </label>
+          <label className="text-xs font-medium text-muted-foreground">JSON path</label>
           <Input
             value={path}
             onChange={(e) => setPath(e.target.value)}
@@ -119,13 +113,9 @@ function ExtractPanel({
           Preview
         </div>
         {path.trim() === "" ? (
-          <span className="text-xs text-muted-foreground">
-            Enter a path to preview the value.
-          </span>
+          <span className="text-xs text-muted-foreground">Enter a path to preview the value.</span>
         ) : previewValue == null ? (
-          <span className="font-mono text-xs text-destructive">
-            No value at this path.
-          </span>
+          <span className="font-mono text-xs text-destructive">No value at this path.</span>
         ) : (
           <span className="break-all font-mono text-xs text-emerald-700 dark:text-emerald-400">
             {previewString || "(empty string)"}
@@ -180,6 +170,11 @@ export function ResponseViewer({
   onCompareHistory,
 }: Props) {
   const hasResponse = !!result || !!error;
+  const [tab, setTab] = useState(result ? "body" : "history");
+
+  useEffect(() => {
+    if (result) setTab("body");
+  }, [result]);
 
   return (
     <div className="space-y-3">
@@ -198,10 +193,7 @@ export function ResponseViewer({
 
       {result && (
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          <Badge
-            variant="outline"
-            className={`${statusVariant(result.status)} font-mono`}
-          >
+          <Badge variant="outline" className={`${statusVariant(result.status)} font-mono`}>
             {result.status} {result.statusText}
           </Badge>
           <span className="text-muted-foreground">·</span>
@@ -213,7 +205,7 @@ export function ResponseViewer({
         </div>
       )}
 
-      <Tabs defaultValue={result ? "body" : "history"}>
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="body" disabled={!result}>
             Body
@@ -232,9 +224,7 @@ export function ResponseViewer({
             <TabsContent value="body">
               <ScrollArea className="h-[380px] rounded-md border bg-muted/30">
                 <pre className="p-4 font-mono text-xs leading-relaxed">
-                  {result.body || (
-                    <span className="text-muted-foreground">(empty)</span>
-                  )}
+                  {result.body || <span className="text-muted-foreground">(empty)</span>}
                 </pre>
               </ScrollArea>
             </TabsContent>
@@ -248,9 +238,7 @@ export function ResponseViewer({
                       className="grid grid-cols-[minmax(140px,1fr)_2fr] gap-3 px-3 py-2 text-xs"
                     >
                       <span className="font-mono font-medium">{k}</span>
-                      <span className="break-all font-mono text-muted-foreground">
-                        {v}
-                      </span>
+                      <span className="break-all font-mono text-muted-foreground">{v}</span>
                     </div>
                   ))}
                 </div>

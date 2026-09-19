@@ -13,6 +13,7 @@ import type { RunStep } from "@/lib/api-playground/types";
 type Props = {
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  onStop: () => void;
   collectionName: string | null;
   running: boolean;
   steps: RunStep[];
@@ -31,6 +32,7 @@ const METHOD_COLORS: Record<string, string> = {
 export function RunCollectionDialog({
   open,
   onOpenChange,
+  onStop,
   collectionName,
   running,
   steps,
@@ -41,9 +43,7 @@ export function RunCollectionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>
-            Run collection{collectionName ? `: ${collectionName}` : ""}
-          </DialogTitle>
+          <DialogTitle>Run collection{collectionName ? `: ${collectionName}` : ""}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -93,9 +93,7 @@ export function RunCollectionDialog({
                               {s.url}
                             </div>
                             {s.error && (
-                              <div className="font-mono text-xs text-destructive">
-                                {s.error}
-                              </div>
+                              <div className="font-mono text-xs text-destructive">{s.error}</div>
                             )}
                             {s.extracted.length > 0 && (
                               <div className="mt-1 flex flex-wrap gap-1">
@@ -127,9 +125,13 @@ export function RunCollectionDialog({
         </div>
 
         <DialogFooter>
-          <Button onClick={() => onOpenChange(false)} disabled={running}>
-            {running ? "Running..." : "Close"}
-          </Button>
+          {running ? (
+            <Button variant="outline" onClick={onStop}>
+              Stop
+            </Button>
+          ) : (
+            <Button onClick={() => onOpenChange(false)}>Close</Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
