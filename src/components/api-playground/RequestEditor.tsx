@@ -112,7 +112,7 @@ export function RequestEditor({
           value={value.method}
           onValueChange={(m) => onChange({ ...value, method: m as HttpMethod })}
         >
-          <SelectTrigger className="w-28 font-mono font-semibold">
+          <SelectTrigger className="w-28 font-mono font-semibold" aria-label="HTTP method">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -125,6 +125,7 @@ export function RequestEditor({
         </Select>
         <Input
           placeholder="https://api.example.com/endpoint  or  {{BASE_URL}}/users"
+          aria-label="Request URL"
           value={value.url}
           onChange={(e) => onChange({ ...value, url: e.target.value })}
           onKeyDown={(e) => {
@@ -166,12 +167,14 @@ export function RequestEditor({
               <div className="flex gap-2">
                 <Input
                   placeholder="Header name"
+                  aria-label="Header name"
                   value={h.key}
                   onChange={(e) => updateHeader(h.id, { key: e.target.value })}
                   className="font-mono text-sm"
                 />
                 <Input
                   placeholder="Value  (supports {{VAR}})"
+                  aria-label="Header value"
                   value={h.value}
                   onChange={(e) => updateHeader(h.id, { value: e.target.value })}
                   className="font-mono text-sm"
@@ -204,6 +207,7 @@ export function RequestEditor({
             </Button>
           </div>
           <Textarea
+            aria-label="Request body"
             value={value.body}
             onChange={(e) => onChange({ ...value, body: e.target.value })}
             placeholder='{ "key": "value" }'

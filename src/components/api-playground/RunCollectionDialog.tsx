@@ -60,7 +60,7 @@ export function RunCollectionDialog({
               ) : (
                 <ul className="divide-y">
                   {steps.map((s, i) => {
-                    const active = running && i === currentIndex;
+                    const active = s.pending;
                     return (
                       <li key={`${s.requestId}-${i}`} className="p-3">
                         <div className="flex items-start gap-2">

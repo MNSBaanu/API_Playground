@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Trash2 } from "lucide-react";
 import type { EnvVariable, Environment } from "@/lib/api-playground/types";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 type Props = {
   open: boolean;
@@ -37,6 +38,8 @@ export function EnvironmentManager({
   const [selectedId, setSelectedId] = useState<string | null>(
     activeEnvId ?? environments[0]?.id ?? null,
   );
+  const [pendingDelete, setPendingDelete] = useState<Environment | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -101,7 +104,13 @@ export function EnvironmentManager({
           <div className="flex flex-col rounded-md border">
             <div className="flex items-center justify-between border-b p-2">
               <span className="text-xs font-medium text-muted-foreground">Environments</span>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={createEnv}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={createEnv}
+                aria-label="New environment"
+              >
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -158,7 +167,10 @@ export function EnvironmentManager({
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => deleteEnv(selected.id)}
+                    onClick={() => {
+                      setPendingDelete(selected);
+                      setConfirmOpen(true);
+                    }}
                     aria-label="Delete environment"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -176,12 +188,14 @@ export function EnvironmentManager({
                       <div key={v.id} className="grid grid-cols-[1fr_1fr_auto] gap-2">
                         <Input
                           placeholder="BASE_URL"
+                          aria-label="Variable name"
                           value={v.key}
                           onChange={(e) => updateVar(v.id, { key: e.target.value })}
                           className="font-mono text-sm"
                         />
                         <Input
                           placeholder="https://api.example.com"
+                          aria-label="Variable value"
                           value={v.value}
                           onChange={(e) => updateVar(v.id, { value: e.target.value })}
                           className="font-mono text-sm"
@@ -214,6 +228,14 @@ export function EnvironmentManager({
         <DialogFooter>
           <Button onClick={() => onOpenChange(false)}>Done</Button>
         </DialogFooter>
+
+        <ConfirmDialog
+          open={confirmOpen}
+          title="Delete environment?"
+          description={`"${pendingDelete?.name ?? ""}" and its variables will be deleted.`}
+          onConfirm={() => pendingDelete && deleteEnv(pendingDelete.id)}
+          onCancel={() => setConfirmOpen(false)}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -70,6 +70,7 @@ export type RunStep = {
   status?: number;
   timeMs?: number;
   ok: boolean;
+  pending?: boolean;
   error?: string;
   extracted: { name: string; value: string | null }[];
 };

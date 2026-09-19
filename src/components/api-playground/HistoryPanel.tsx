@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GitCompareArrows, RotateCcw, Trash2 } from "lucide-react";
 import type { HistoryEntry } from "@/lib/api-playground/types";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 type Props = {
   entries: HistoryEntry[];
@@ -42,6 +44,8 @@ export function HistoryPanel({
   onClear,
   onCompare,
 }: Props) {
+  const [confirmClear, setConfirmClear] = useState(false);
+
   if (entries.length === 0) {
     return (
       <p className="p-4 text-xs text-muted-foreground">
@@ -68,7 +72,12 @@ export function HistoryPanel({
             <GitCompareArrows className="mr-1.5 h-3.5 w-3.5" />
             Compare
           </Button>
-          <Button size="sm" variant="ghost" className="h-7 text-muted-foreground" onClick={onClear}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-muted-foreground"
+            onClick={() => setConfirmClear(true)}
+          >
             <Trash2 className="mr-1.5 h-3.5 w-3.5" />
             Clear
           </Button>
@@ -103,6 +112,7 @@ export function HistoryPanel({
                   className="h-6 px-2"
                   onClick={() => onLoadEntry(e)}
                   title="Show this response above"
+                  aria-label="Show this response"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                 </Button>
@@ -111,6 +121,15 @@ export function HistoryPanel({
           })}
         </ul>
       </ScrollArea>
+
+      <ConfirmDialog
+        open={confirmClear}
+        title="Clear history?"
+        description="All recorded runs for this request will be deleted."
+        confirmLabel="Clear"
+        onConfirm={onClear}
+        onCancel={() => setConfirmClear(false)}
+      />
     </div>
   );
 }

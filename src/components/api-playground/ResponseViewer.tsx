@@ -89,8 +89,11 @@ function ExtractPanel({
       </p>
       <div className="grid grid-cols-[1fr_1.5fr] gap-2">
         <div>
-          <label className="text-xs font-medium text-muted-foreground">Variable name</label>
+          <label htmlFor="extract-name" className="text-xs font-medium text-muted-foreground">
+            Variable name
+          </label>
           <Input
+            id="extract-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="AUTH_TOKEN"
@@ -98,8 +101,11 @@ function ExtractPanel({
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground">JSON path</label>
+          <label htmlFor="extract-path" className="text-xs font-medium text-muted-foreground">
+            JSON path
+          </label>
           <Input
+            id="extract-path"
             value={path}
             onChange={(e) => setPath(e.target.value)}
             placeholder="data.token"

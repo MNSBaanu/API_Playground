@@ -49,7 +49,13 @@ function Row({
         {source}
       </span>
       {onDelete ? (
-        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onDelete}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={onDelete}
+          aria-label={`Delete ${name}`}
+        >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       ) : (

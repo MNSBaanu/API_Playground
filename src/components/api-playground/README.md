@@ -13,3 +13,4 @@ Feature UI for the API testing playground. All state is lifted into `Playground.
 | `RunCollectionDialog.tsx` | Sequential collection runner with live progress |
 | `HistoryPanel.tsx` | Per-request run history + multi-select for compare |
 | `CompareDialog.tsx` | Side-by-side LCS diff of two history entries |
+| `ConfirmDialog.tsx` | Confirmation prompt used before deleting collections, requests, environments, or history |

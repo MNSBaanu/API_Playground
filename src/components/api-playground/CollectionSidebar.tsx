@@ -34,6 +34,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 import type { Collection, RequestState, SavedRequest } from "@/lib/api-playground/types";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 type Props = {
   collections: Collection[];
@@ -53,6 +54,9 @@ type Props = {
   onRunCollection: (collectionId: string) => void;
 };
 
+const REVEAL_ON_HOVER =
+  "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 data-[state=open]:opacity-100 pointer-coarse:opacity-100";
+
 const METHOD_COLORS: Record<string, string> = {
   GET: "text-emerald-600 dark:text-emerald-400",
   POST: "text-blue-600 dark:text-blue-400",
@@ -66,6 +70,11 @@ type PromptState =
   | { kind: "rename-collection"; id: string; current: string }
   | { kind: "rename-request"; collectionId: string; requestId: string; current: string }
   | { kind: "save-current"; collectionId: string }
+  | null;
+
+type PendingDelete =
+  | { kind: "collection"; id: string; name: string }
+  | { kind: "request"; collectionId: string; requestId: string; name: string }
   | null;
 
 export function CollectionSidebar(props: Props) {
@@ -91,6 +100,13 @@ export function CollectionSidebar(props: Props) {
   const [prompt, setPrompt] = useState<PromptState>(null);
   const [promptValue, setPromptValue] = useState("");
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const askDelete = (p: Exclude<PendingDelete, null>) => {
+    setPendingDelete(p);
+    setConfirmOpen(true);
+  };
 
   const isExpanded = (id: string) => expanded[id] !== false; // default open
 
@@ -187,6 +203,7 @@ export function CollectionSidebar(props: Props) {
                   >
                     <button
                       onClick={() => toggle(col.id)}
+                      aria-expanded={open}
                       className="flex flex-1 items-center gap-1.5 overflow-hidden text-left"
                     >
                       {open ? (
@@ -203,7 +220,7 @@ export function CollectionSidebar(props: Props) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                      className={`h-6 w-6 ${REVEAL_ON_HOVER}`}
                       aria-label={`Run ${col.name}`}
                       title="Run all requests"
                       disabled={col.requests.length === 0}
@@ -219,7 +236,7 @@ export function CollectionSidebar(props: Props) {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                          className={`h-6 w-6 ${REVEAL_ON_HOVER}`}
                           aria-label="Collection menu"
                         >
                           <MoreHorizontal className="h-3.5 w-3.5" />
@@ -259,7 +276,9 @@ export function CollectionSidebar(props: Props) {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
-                          onClick={() => onDeleteCollection(col.id)}
+                          onClick={() =>
+                            askDelete({ kind: "collection", id: col.id, name: col.name })
+                          }
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete collection
@@ -313,7 +332,7 @@ export function CollectionSidebar(props: Props) {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                                    className={`h-6 w-6 ${REVEAL_ON_HOVER}`}
                                     aria-label="Request menu"
                                   >
                                     <MoreHorizontal className="h-3.5 w-3.5" />
@@ -365,7 +384,14 @@ export function CollectionSidebar(props: Props) {
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
-                                    onClick={() => onDeleteRequest(col.id, req.id)}
+                                    onClick={() =>
+                                      askDelete({
+                                        kind: "request",
+                                        collectionId: col.id,
+                                        requestId: req.id,
+                                        name: req.name,
+                                      })
+                                    }
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     Delete
@@ -460,6 +486,22 @@ export function CollectionSidebar(props: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={pendingDelete?.kind === "collection" ? "Delete collection?" : "Delete request?"}
+        description={
+          pendingDelete?.kind === "collection"
+            ? `"${pendingDelete.name}" and all its saved requests and history will be deleted.`
+            : `"${pendingDelete?.name ?? ""}" and its history will be deleted.`
+        }
+        onConfirm={() => {
+          if (pendingDelete?.kind === "collection") onDeleteCollection(pendingDelete.id);
+          else if (pendingDelete?.kind === "request")
+            onDeleteRequest(pendingDelete.collectionId, pendingDelete.requestId);
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </aside>
   );
 }

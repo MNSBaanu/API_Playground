@@ -471,6 +471,9 @@ export function Playground() {
         continue;
       }
 
+      const pendingStep: RunStep = { ...step, pending: true };
+      setRunSteps((s) => [...s, pendingStep]);
+
       try {
         const { result: res, parsed, isJson } = await executeRequest(prepared, controller.signal);
         step = { ...step, status: res.status, timeMs: res.timeMs, ok: res.status < 400 };
@@ -528,7 +531,7 @@ export function Playground() {
         );
       }
 
-      setRunSteps((s) => [...s, step]);
+      setRunSteps((s) => [...s.slice(0, -1), step]);
     }
 
     runAbortRef.current = null;
@@ -561,7 +564,7 @@ export function Playground() {
             value={activeEnvId ?? NONE}
             onValueChange={(v) => persistActiveEnv(v === NONE ? null : v)}
           >
-            <SelectTrigger className="h-8 w-44 text-sm">
+            <SelectTrigger className="h-8 w-44 text-sm" aria-label="Environment">
               <SelectValue placeholder="No environment" />
             </SelectTrigger>
             <SelectContent>
